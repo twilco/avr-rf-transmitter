@@ -24,7 +24,14 @@ void reinit();
    If you change the misc_byte position variables, *this #define must change, too.* */
 #define DEFAULT_MISC_BYTE 0b01010000
 
-/* Use UUU for our preamble, or training chars.  I selected these characters because the binary value of
+/* Number of seconds of user inactivity before the AVR should go to sleep. */
+#define SECONDS_BEFORE_SLEEP (uint16_t) 180
+
+/* Number of times Timer 2 needs to overflow before the AVR should go to sleep. */
+#define EIGHT_BIT_TIMER_MAX 255
+#define TIMER2_OVERFLOWS_BEFORE_SLEEP (uint32_t) (SECONDS_BEFORE_SLEEP / (float) ((EIGHT_BIT_TIMER_MAX * TIMER2_PRESCALER) / (float) F_CPU))
+
+/* Use UU for our preamble, or training chars.  I selected these characters because the binary value of
    the 'U' char is 01010101, which supposedly gives the receivers data slicer a nice square wave to sync up with */
 const char TRAINING_CHARS[] = "UU";
 
@@ -268,7 +275,7 @@ ISR(TIMER2_OVF_vect)
     - The checksum byte adds up the data bytes, discarding any carryover, so that the receiver can do the same
     and determine if the packet was valid.
     
-    An example packet might look like this, where '_' are the training bytes, '>' is the start byte, and 'X' is the checksum byte.
+    An example packet might look like this, where '_' are the training bytes, 'A', 'B', 'C', and 'D' are the data bytes, and 'X' is the checksum byte.
     
     _ _ _ > A B C D X
     
