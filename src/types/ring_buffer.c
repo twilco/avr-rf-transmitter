@@ -14,7 +14,7 @@ enum Buffer_Status ring_buffer_read(volatile struct Ring_Buffer* buffer, volatil
     }
 
     *byte = buffer->data[buffer->oldest_index];
-    buffer->oldest_index = ((buffer->oldest_index + 1) % BUFFER_SIZE);
+    buffer->oldest_index = ((buffer->oldest_index + 1) % RING_BUFFER_SIZE);
     return BUFFER_OK;
 }
 
@@ -25,8 +25,9 @@ enum Buffer_Status ring_buffer_read(volatile struct Ring_Buffer* buffer, volatil
     @param buffer - The buffer to work on
     @param byte - The byte to write
     @return buffer_status - The status of the write operation - BUFFER_FULL if there was no space in the buffer to perform the write, BUFFER_OK otherwise
+*/
 enum Buffer_Status ring_buffer_write(volatile struct Ring_Buffer* buffer, volatile uint8_t byte){
-    uint8_t next_index = (((buffer->newest_index) + 1) % BUFFER_SIZE);
+    uint8_t next_index = (((buffer->newest_index) + 1) % RING_BUFFER_SIZE);
     
     if (next_index == buffer->oldest_index) {
         return BUFFER_FULL;
