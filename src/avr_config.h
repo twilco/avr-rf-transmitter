@@ -6,7 +6,6 @@
 #include <stdint.h>
 
 #define F_CPU (uint32_t) 4000000
-#define TIMER0_PRESCALER (uint8_t) 64
 
 #define ANALOG_STICK_X ADC0_PIN
 #define ANALOG_STICK_Y ADC1_PIN

@@ -107,21 +107,6 @@ void start_adc(volatile enum Adc_Channel channel)
     ADCSRA |= (1 << ADSC);
 }
 
-/*
-    Starts the ADC for either the x-axis analog stick value or the y-value, depending on which is already currently selected.
-    
-    @param *selected_channel - The channel that was selected prior to this function call
-*/
-void start_x_or_y_analog_stick_adc(volatile enum Adc_Channel *selected_channel)
-{
-    if(*selected_channel == ANALOG_STICK_Y) {
-        *selected_channel = ANALOG_STICK_X;
-    } else if(*selected_channel == ANALOG_STICK_X) {
-        *selected_channel = ANALOG_STICK_Y;
-    }
-    start_adc(*selected_channel);
-}
-
 void usart_init() 
 {
     /*

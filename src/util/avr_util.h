@@ -14,7 +14,6 @@ void adc_init();
 bool adc_in_progress();
 void select_adc_channel(volatile enum Adc_Channel channel);
 void start_adc(volatile enum Adc_Channel channel);
-void start_x_or_y_analog_stick_adc(volatile enum Adc_Channel *selected_channel);
 void usart_init();
 bool usart_transmission_buffer_empty();
 void usart_transmit(unsigned char data);

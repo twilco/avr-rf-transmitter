@@ -6,10 +6,10 @@
 #include <stdint.h>
 
 /* Use a power of two for your buffer size so when we % it later, the compiler can optimize to something that isn't division. */
-#define BUFFER_SIZE 512
+#define RING_BUFFER_SIZE 512
 
 struct Ring_Buffer {
-    uint8_t data[BUFFER_SIZE];
+    uint8_t data[RING_BUFFER_SIZE];
     uint8_t newest_index;
     uint8_t oldest_index;
 };
