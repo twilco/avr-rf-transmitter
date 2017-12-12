@@ -176,6 +176,12 @@ ISR(ADC_vect)
 ISR(PCINT1_vect, ISR_ALIASOF(PCINT0_vect));
 ISR(PCINT2_vect, ISR_ALIASOF(PCINT0_vect));
 
+// Interrupt fired whenever any of the pins configured by PCMSK change levels.
+ISR(PCINT0_vect)
+{ 
+    
+}
+
 // Interrupt fired once and automatically cleared by hardware upon completion of a USART transmission.
 ISR(USART_TX_vect)
 {
@@ -183,12 +189,6 @@ ISR(USART_TX_vect)
     if(usart_transmission_buffer_empty() && ring_buffer_read(&packet_buffer, &byte) == BUFFER_OK) {
         UDR0 = byte;
     }
-}
-
-// Interrupt fired whenever any of the pins configured by PCMSK change levels.
-ISR(PCINT0_vect)
-{ 
-    
 }
 
 ISR(TIMER2_OVF_vect)
@@ -202,6 +202,7 @@ ISR(TIMER2_OVF_vect)
         should_construct_packet = true;
     }
     start_adc(selected_adc_channel);
+   
     // active high button first (analog stick button), then all active low buttons
     if(digital_input_status.analog_stick_btn_pressed == BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN)) {
         set_or_clear(BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN), &misc_byte, ANALOG_STICK_BTN_BYTE_POS);
@@ -286,7 +287,8 @@ ISR(TIMER2_OVF_vect)
     @param num_data_chars - The number of data chars being passed in.
     @param null_terminated - Whether or not to null terminate this packet.
     @return Buffer_Status - Returns the Buffer_Status returned by the most recent write, which allows the caller to handle buffer-related issues, such as an attempted write to a full buffer.
-*/enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate)
+*/
+enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate)
 {
     enum Buffer_Status status;
     
