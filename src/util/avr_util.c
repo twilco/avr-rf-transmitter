@@ -3,7 +3,7 @@
 void adc_init()
 {
     /*
-        Set REFS0 to use AVCC external reference with a capacitor from AREF to ground.
+        Set REFS0 to use AVCC external reference with a capacitor from the AREF pin to ground.
     */
     ADMUX = (1 << REFS0);
     /*
@@ -14,12 +14,7 @@ void adc_init()
             - We're running at a 4mhz clock / max speed of 200khz = 20
             - The next closest prescaler is 32.  4000000 / 32 = 125khz clock speed for the ADC
     */
-    ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADPS0) | (1 << ADPS2); // ADEN after waking up from sleep - we should disable upon going to sleep mode to reduce power consumption
-    /*
-       Set these bits to disable the digital buffering layer for specified pin.  We don't need the digital buffer for these pins, as we are either
-       using them as analog inputs (pins ADC0 and ADC1 in this case) or not using them at all.
-    */
-    DIDR0 = (1 << ADC0D) | (1 << ADC1D);
+    ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADPS0) | (1 << ADPS2);
 }
 
 /*
@@ -28,6 +23,67 @@ void adc_init()
 bool adc_in_progress()
 {
     return BIT_CHECK(ADCSRA, ADSC);
+}
+
+void disable_pcint(enum Pcint_Group group)
+{
+    switch(group) {
+        case ALL_GROUPS:
+            BIT_CLEAR(PCICR, PCIE0);
+            BIT_CLEAR(PCICR, PCIE1);
+            BIT_CLEAR(PCICR, PCIE2);
+            break;
+        case PCINT_0_7:
+            BIT_CLEAR(PCICR, PCIE0);
+            break;
+        case PCINT_8_14:
+            BIT_CLEAR(PCICR, PCIE1);
+            break;
+        case PCINT_16_23:
+            BIT_CLEAR(PCICR, PCIE2);
+            break;
+    }
+}
+
+void enable_pcint(enum Pcint_Group group)
+{
+    switch(group) {
+        case ALL_GROUPS:
+            BIT_SET(PCICR, PCIE0);
+            BIT_SET(PCICR, PCIE1);
+            BIT_SET(PCICR, PCIE2);
+            break;
+        case PCINT_0_7:
+            BIT_SET(PCICR, PCIE0);
+            break;
+        case PCINT_8_14:
+            BIT_SET(PCICR, PCIE1);
+            break;
+        case PCINT_16_23:
+            BIT_SET(PCICR, PCIE2);
+            break;
+    }
+}
+
+void enter_sleep()
+{
+    sei();
+    enable_pcint(ALL_GROUPS);
+    power_adc_disable();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    /* 
+      The sleep_mode() function enables sleep mode and then executes a SLEEP instruction.  When the uC wakes
+      up (likely due to an interrupt), the code in the interrupt will be run, and then the sleep_mode() function 
+      will finish off by disabling sleep mode (clearing the SE, sleep enable, bit in the SMCR register).  Then control 
+      continues as normal to the rest of this (enter_sleep()) function.
+    */
+    sleep_mode();
+    disable_pcint(ALL_GROUPS);
+}
+
+void exit_sleep()
+{
+    power_adc_enable();
 }
 
 void select_adc_channel(volatile enum Adc_Channel channel)

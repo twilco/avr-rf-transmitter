@@ -15,6 +15,17 @@ enum Adc_Channel {
     NONE
 } Adc_Channel;
 
+/* 
+   Type definition for PCINT pin groups.  PCINT_0_7 corresponds to the
+   PCINT group that triggers an interrupt for PCINT pins 0 through 7. 
+*/
+enum Pcint_Group {
+    PCINT_0_7,
+    PCINT_8_14,
+    PCINT_16_23,
+    ALL_GROUPS
+} Pcint_Group;
+
 struct Digital_Input_Status {
     bool analog_stick_btn_pressed;
     

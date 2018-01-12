@@ -25,7 +25,7 @@ void reinit();
 #define DEFAULT_MISC_BYTE 0b01010000
 
 /* Number of seconds of user inactivity before the AVR should go to sleep. */
-#define SECONDS_BEFORE_SLEEP (uint16_t) 180
+#define SECONDS_BEFORE_SLEEP (uint16_t) 600
 
 /* Number of times Timer 2 needs to overflow before the AVR should go to sleep. */
 #define EIGHT_BIT_TIMER_MAX 255
@@ -77,6 +77,9 @@ volatile uint8_t lsb_analog_stick_y_byte = DEFAULT_ANALOG_X_Y_BYTE_VAL;
 /* The number of times timer2 has overflown. */
 volatile uint8_t timer2_overflows = 0;
 
+/* Timer2 overflow counter that is used when determining whether or not to put the microcontroller to sleep. */
+volatile uint32_t timer2_inactivity_ovf_counter = 0;
+
 /* Flag indicating whether or not a packet should be constructed and sent off. */
 volatile bool should_construct_packet = false;
 
@@ -91,38 +94,29 @@ volatile struct Digital_Input_Status digital_input_status = {.analog_stick_btn_p
                                                              .brown3_btn_pressed = false, .blue1_btn_pressed = false, .blue2_btn_pressed = false,
                                                              .left_shoulder_btn_pressed = false, .right_shoulder_btn_pressed = false};
 
-/* TODO: Blink LED and zero out sleep counter on packet change */
-
 int main(void)
 {
     /*
         Turn on internal pull-up resistors for all of our non-analog stick digital inputs.
         The push button on the analog stick is active high, so (unfortunately) an external 
-        pull-down resistor is necessary.
+        pull-down resistor is necessary.  Pull-ups are also enabled for the (currently) two
+        unused pins, PIND2 and PIND3, to reduce power consumption in sleep modes and eliminate floating inputs.
         
         If you change the pin a button is plugged in to, you may need to update these pull-ups, 
         and will definitely need to update avr_config.h.
     */
     PORTB |= (1 << PINB0) | (1 << PINB1) | (1 << PINB2);
     PORTC |= (1 << PINC2) | (1 << PINC3) | (1 << PINC4) | (1 << PINC5);
-    PORTD |= (1 << PIND5) | (1 << PIND6) | (1 << PIND7);
+    PORTD |= (1 << PIND2) | (1 << PIND3) | (1 << PIND5) | (1 << PIND6) | (1 << PIND7);
     
     /*
-       Set these bits to enable pin change interrupts for our inputs, including the two pins used for our analog stick x and y values.
-       
-       As with the previous group, these will likely need to be changed if you change the pin
-       that an input is plugged in to.  This group should also mostly match up the the previous group,
-       excluding the analog stick digital switch, which is active high and thus does not get its pull-up
-       enabled in the previous group.
+       Set these bits to enable pin change interrupts for our inputs, including the two pins used for our analog 
+       stick x and y values.  As with the previous group, these will likely need to be changed if you change the 
+       pin that an input is plugged in to.
     */
     PCMSK0 = (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2);
     PCMSK1 = (1 << PCINT8) | (1 << PCINT9) | (1 << PCINT10) | (1 << PCINT11) | (1 << PCINT12) | (1 << PCINT13);
     PCMSK2 = (1 << PCINT20) | (1 << PCINT21) | (1 << PCINT22) | (1 << PCINT23);
-    
-    /*
-        Set these three bits to enable interrupts for all three pin change groups.
-    */
-    PCICR = (1 << PCIE0) | (1 << PCIE1) | (1 << PCIE2);
     
     /*
         Set TOEI2 to enable the Timer2 overflow interrupt.
@@ -135,21 +129,30 @@ int main(void)
     sei();
     
     /*
-        Start Timer2 with a prescaler of 256.  This result in overflows every 16.32ms.
+        Start Timer2 with a prescaler of 256.  This results in overflows every 16.32ms.
     */
     TCCR2B = (1 << CS22) | (1 << CS21);
     
     uint8_t temp_byte;
+    char packet_data[NUM_DATA_CHARS];
     while (1)
     {
         if(should_construct_packet) {
-            char data[NUM_DATA_CHARS];
-            data[0] = button_byte;
-            data[1] = misc_byte;
-            data[2] = lsb_analog_stick_x_byte;
-            data[3] = lsb_analog_stick_y_byte;
+            // Check to see if our packet data has changed this the last packet was sent.  If so, let's reset our inactivity counter, since the user has interacted with button(s) and/or the analog stick.
+            if(packet_data[0] != button_byte) {
+                timer2_inactivity_ovf_counter = 0;
+                packet_data[0] = button_byte;
+            }
             
-            construct_and_store_packet(&packet_buffer, TRAINING_CHARS, NUM_TRAINING_CHARS, data, NUM_DATA_CHARS, false);
+            if(packet_data[1] != misc_byte) {
+                timer2_inactivity_ovf_counter = 0;
+                packet_data[1] = misc_byte;
+            }
+
+            packet_data[2] = lsb_analog_stick_x_byte;
+            packet_data[3] = lsb_analog_stick_y_byte;
+            
+            construct_and_store_packet(&packet_buffer, TRAINING_CHARS, NUM_TRAINING_CHARS, packet_data, NUM_DATA_CHARS, false);
             should_construct_packet = false;
         }
         
@@ -173,22 +176,13 @@ ISR(ADC_vect)
     }
 }
 
-ISR(PCINT1_vect, ISR_ALIASOF(PCINT0_vect));
-ISR(PCINT2_vect, ISR_ALIASOF(PCINT0_vect));
-
-// Interrupt fired once and automatically cleared by hardware upon completion of a USART transmission.
-ISR(USART_TX_vect)
-{
-    uint8_t byte;
-    if(usart_transmission_buffer_empty() && ring_buffer_read(&packet_buffer, &byte) == BUFFER_OK) {
-        UDR0 = byte;
-    }
-}
+ISR(PCINT0_vect, ISR_ALIASOF(PCINT2_vect));
+ISR(PCINT1_vect, ISR_ALIASOF(PCINT2_vect));
 
 // Interrupt fired whenever any of the pins configured by PCMSK change levels.
-ISR(PCINT0_vect)
-{ 
-    
+ISR(PCINT2_vect)
+{
+    exit_sleep();
 }
 
 ISR(TIMER2_OVF_vect)
@@ -263,6 +257,22 @@ ISR(TIMER2_OVF_vect)
     
     // All of our buttons are active low except for this one.  No inverse operator (!) needed here.
     digital_input_status.analog_stick_btn_pressed = BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN);
+    
+    timer2_inactivity_ovf_counter++;
+    
+    if(timer2_inactivity_ovf_counter == TIMER2_OVERFLOWS_BEFORE_SLEEP) {
+        timer2_inactivity_ovf_counter = 0;
+        enter_sleep();
+    }
+}
+
+// Interrupt fired once and automatically cleared by hardware upon completion of a USART transmission.
+ISR(USART_TX_vect)
+{
+    uint8_t byte;
+    if(usart_transmission_buffer_empty() && ring_buffer_read(&packet_buffer, &byte) == BUFFER_OK) {
+        UDR0 = byte;
+    }
 }
 
 /*
