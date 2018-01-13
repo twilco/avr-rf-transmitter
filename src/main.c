@@ -10,7 +10,6 @@
 #include <avr/io.h>
 
 enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate);
-void reinit();
 
 /* Since the ADC in AVRs output 10 bits, and the center of our joystick is represented by 524,
    these 8 bits on their own are equivalent to 12 in decimal.  To save space versus transmitting
@@ -319,12 +318,4 @@ enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const 
     }
     
     return status;
-}
-
-/*
-   Reinitializes application state.
-*/
-void reinit()
-{
-    
 }
