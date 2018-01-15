@@ -65,6 +65,7 @@ void enable_pcint(enum Pcint_Group group)
     }
 }
 
+// Performs the necessary pre-sleep housekeeing items, and then puts the uC to sleep to preserver power.
 void enter_sleep()
 {
     sei();
@@ -81,6 +82,7 @@ void enter_sleep()
     disable_pcint(ALL_GROUPS);
 }
 
+// This function handles post-sleep house keeping items to get our uC back up and ready to go.
 void exit_sleep()
 {
     power_adc_enable();

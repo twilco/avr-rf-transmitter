@@ -24,7 +24,7 @@ enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const 
 #define DEFAULT_MISC_BYTE 0b01010000
 
 /* Number of seconds of user inactivity before the AVR should go to sleep. */
-#define SECONDS_BEFORE_SLEEP (uint16_t) 600
+#define SECONDS_BEFORE_SLEEP (uint16_t) 300
 
 /* Number of times Timer 2 needs to overflow before the AVR should go to sleep. */
 #define EIGHT_BIT_TIMER_MAX 255
@@ -186,9 +186,10 @@ ISR(PCINT2_vect)
 
 ISR(TIMER2_OVF_vect)
 {
+    // Send a packet every other timer overflow, and alternate analog-to-digital conversions between our two analog stick axes.
     if(timer2_overflows == 0) {
-         selected_adc_channel = ANALOG_STICK_Y;
-         timer2_overflows++;
+        selected_adc_channel = ANALOG_STICK_Y;
+        timer2_overflows++;
     } else if(timer2_overflows == 1) {
         selected_adc_channel = ANALOG_STICK_X;
         timer2_overflows = 0;
@@ -196,7 +197,8 @@ ISR(TIMER2_OVF_vect)
     }
     start_adc(selected_adc_channel);
    
-    // active high button first (analog stick button), then all active low buttons
+    // If the button value matches that of the last value from the last overflow, we know (almost certainly) that
+    // the value we're seeing is not a button bounce.  Let's set it in our data bytes.
     if(digital_input_status.analog_stick_btn_pressed == BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN)) {
         set_or_clear(BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN), &misc_byte, ANALOG_STICK_BTN_BYTE_POS);
     }
