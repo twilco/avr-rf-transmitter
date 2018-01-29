@@ -9,7 +9,7 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate);
+enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t start_char, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate);
 
 /* Since the ADC in AVRs output 10 bits, and the center of our joystick is represented by 524,
    these 8 bits on their own are equivalent to 12 in decimal.  To save space versus transmitting
@@ -24,7 +24,7 @@ enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const 
 #define DEFAULT_MISC_BYTE 0b01010000
 
 /* Number of seconds of user inactivity before the AVR should go to sleep. */
-#define SECONDS_BEFORE_SLEEP (uint16_t) 300
+#define SECONDS_BEFORE_SLEEP (uint16_t) 900
 
 /* Number of times Timer 2 needs to overflow before the AVR should go to sleep. */
 #define EIGHT_BIT_TIMER_MAX 255
@@ -32,10 +32,13 @@ enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const 
 
 /* Use UU for our preamble, or training chars.  I selected these characters because the binary value of
    the 'U' char is 01010101, which supposedly gives the receivers data slicer a nice square wave to sync up with */
-const char TRAINING_CHARS[] = "UU";
+const char TRAINING_CHARS[] = "U";
 
 /* Number of training chars being used - must match the length of the above variable. */
-const uint8_t NUM_TRAINING_CHARS = 2;
+const uint8_t NUM_TRAINING_CHARS = 1;
+
+/* This is the char we'll use to tell the receiver that any bytes that follow are actual data bytes. */
+const char START_CHAR = 0b10101010;
 
 /* Number of data chars being sent in the packet.  This should NOT include the checksum char.
    Currently, we have 'misc_byte', 'button_byte', 'lsb_analog_stick_x_byte', and 'lsb_analog_stick_y_byte' */
@@ -151,7 +154,7 @@ int main(void)
             packet_data[2] = lsb_analog_stick_x_byte;
             packet_data[3] = lsb_analog_stick_y_byte;
             
-            construct_and_store_packet(&packet_buffer, TRAINING_CHARS, NUM_TRAINING_CHARS, packet_data, NUM_DATA_CHARS, false);
+            construct_and_store_packet(&packet_buffer, TRAINING_CHARS, START_CHAR, NUM_TRAINING_CHARS, packet_data, NUM_DATA_CHARS, false);
             should_construct_packet = false;
         }
         
@@ -293,19 +296,22 @@ ISR(USART_TX_vect)
     
     @param buffer - The buffer to fill as you construct the packet.
     @param training_chars - The chars used for training the receiver to sync up with this transmitter before we start sending actual data.
-    @param num_training_chars - The number of training chars being passed in
+    @param num_training_chars - The number of training chars being passed in.
+    @param start_char - The char used to indicate the start of the data portion of the packet
     @param data - The chars representing the data portion of the packet.
     @param num_data_chars - The number of data chars being passed in.
     @param null_terminated - Whether or not to null terminate this packet.
     @return Buffer_Status - Returns the Buffer_Status returned by the most recent write, which allows the caller to handle buffer-related issues, such as an attempted write to a full buffer.
 */
-enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate)
+enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t start_char, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate)
 {
     enum Buffer_Status status;
     
     for(uint8_t i = 0; i < num_training_chars; i++) {
         status = ring_buffer_write(buffer, training_chars[i]);
     }
+    
+    status = ring_buffer_write(buffer, start_char);
     
     uint8_t checksum = 0;
     for(uint8_t j = 0; j < num_data_chars; j++) {
