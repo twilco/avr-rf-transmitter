@@ -2,7 +2,14 @@
 
 #include "types/general_types.h"
 #include "types/ring_buffer.h"
+
+#include "util/avr_adc.h"
+#include "util/avr_spi.h"
+#include "util/avr_usart.h"
 #include "util/avr_util.h"
+#include "util/general_util.h"
+
+#include "lib/rfm69/rfm69.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -126,6 +133,7 @@ int main(void)
     TIMSK2 = (1 << TOIE2);
     
     adc_init();
+    master_spi_init();
     usart_init();
     
     sei();

@@ -109,6 +109,8 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Folder Include="src\lib" />
+    <Folder Include="src\lib\rfm69" />
     <Folder Include="src\types" />
     <Folder Include="src\util\" />
     <Folder Include="test" />
@@ -116,6 +118,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\avr_config.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\lib\rfm69\rfm69.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\lib\rfm69\rfm69.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\lib\rfm69\rfm69_registers.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.c">
@@ -130,6 +141,18 @@
     <Compile Include="src\types\general_types.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\util\avr_adc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\avr_adc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\avr_usart.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\avr_usart.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\util\avr_util.c">
       <SubType>compile</SubType>
     </Compile>
@@ -140,6 +163,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\util\general_util.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\avr_spi.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\avr_spi.h">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
