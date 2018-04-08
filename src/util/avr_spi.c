@@ -1,10 +1,5 @@
 #include "avr_spi.h"
 
-void spi_transmit(uint8_t data)
-{
-    
-}
-
 void master_spi_init()
 {
     // Set MOSI and SCK as output pins, since the AVR will be operating as master in this case.  
@@ -20,4 +15,28 @@ void master_spi_init()
     
     // Set SPI2X to double the SPI clock speed.
     SPSR = (1 << SPI2X);
+}
+
+/*
+    Sends a byte of data over SPI, and returns the byte sent to us post-transmission.
+    
+    @return uint8_t - Byte sent back to us after we transmitted our data
+*/
+uint8_t spi_transmit(uint8_t data)
+{
+    SPDR = data;
+    // Wait for transmission of data and reception of incoming byte to complete
+    while(!spi_transmission_complete());
+    // SPDR now contains the byte we received after transmission of our data
+    return SPDR;
+}
+
+/*
+    Returns true if a SPI transmission is in progress, false otherwise
+    
+    @return bool
+*/
+bool spi_transmission_complete()
+{
+    return BIT_CHECK(SPSR, SPIF);
 }
