@@ -10,7 +10,7 @@
 */
 void check_set_or_clear(uint16_t val_to_check, uint8_t bit_to_check, volatile uint8_t *write_to, uint8_t bit_pos_to_write_to)
 {
-    if(BIT_CHECK(val_to_check, bit_to_check)) {
+    if(BIT_IS_SET(val_to_check, bit_to_check)) {
         BIT_SET(*write_to, bit_pos_to_write_to);
     } else {
         BIT_CLEAR(*write_to, bit_pos_to_write_to);

@@ -25,18 +25,8 @@ void master_spi_init()
 uint8_t spi_transmit(uint8_t data)
 {
     SPDR = data;
-    // Wait for transmission of data and reception of incoming byte to complete
-    while(!spi_transmission_complete());
+    // Wait until SPIF bit is set, which indicates transmission of our byte and reception of the response byte is complete
+    while(!BIT_IS_SET(SPSR, SPIF));
     // SPDR now contains the byte we received after transmission of our data
     return SPDR;
-}
-
-/*
-    Returns true if a SPI transmission is in progress, false otherwise
-    
-    @return bool
-*/
-bool spi_transmission_complete()
-{
-    return BIT_CHECK(SPSR, SPIF);
 }

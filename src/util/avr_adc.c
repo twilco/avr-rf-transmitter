@@ -22,7 +22,7 @@ void adc_init()
 */
 bool adc_in_progress()
 {
-    return BIT_CHECK(ADCSRA, ADSC);
+    return BIT_IS_SET(ADCSRA, ADSC);
 }
 
 void select_adc_channel(volatile enum Adc_Channel channel)

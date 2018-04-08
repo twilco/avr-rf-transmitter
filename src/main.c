@@ -208,68 +208,68 @@ ISR(TIMER2_OVF_vect)
     }
     start_adc(selected_adc_channel);
    
-    // If the button value matches that of the last value from the last overflow, we know (almost certainly) that
+    // If the button pressed status is the same as it was in the last timer interrupt, we know (almost certainly) that
     // the value we're seeing is not a button bounce.  Let's set it in our data bytes.
-    if(digital_input_status.analog_stick_btn_pressed == BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN)) {
-        set_or_clear(BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN), &misc_byte, ANALOG_STICK_BTN_BYTE_POS);
+    if(digital_input_status.analog_stick_btn_pressed == BIT_IS_SET(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN)) {
+        set_or_clear(BIT_IS_SET(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN), &misc_byte, ANALOG_STICK_BTN_BYTE_POS);
     }
     
-    if(digital_input_status.left_shoulder_btn_pressed == !BIT_CHECK(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN), &misc_byte, LEFT_SHOULDER_BTN_BYTE_POS);
+    if(digital_input_status.left_shoulder_btn_pressed == !BIT_IS_SET(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN), &misc_byte, LEFT_SHOULDER_BTN_BYTE_POS);
     }
     
-    if(digital_input_status.right_shoulder_btn_pressed == !BIT_CHECK(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN), &misc_byte, RIGHT_SHOULDER_BTN_BYTE_POS);
+    if(digital_input_status.right_shoulder_btn_pressed == !BIT_IS_SET(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN), &misc_byte, RIGHT_SHOULDER_BTN_BYTE_POS);
     }
     
-    if(digital_input_status.purple1_btn_pressed == !BIT_CHECK(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN), &button_byte, PURPLE1_BTN_BYTE_POS);
+    if(digital_input_status.purple1_btn_pressed == !BIT_IS_SET(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN), &button_byte, PURPLE1_BTN_BYTE_POS);
     }
     
-    if(digital_input_status.purple2_btn_pressed == !BIT_CHECK(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN), &button_byte, PURPLE2_BTN_BYTE_POS);
+    if(digital_input_status.purple2_btn_pressed == !BIT_IS_SET(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN), &button_byte, PURPLE2_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.purple3_btn_pressed == !BIT_CHECK(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN), &button_byte, PURPLE3_BTN_BYTE_POS);
+    if(digital_input_status.purple3_btn_pressed == !BIT_IS_SET(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN), &button_byte, PURPLE3_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.brown1_btn_pressed == !BIT_CHECK(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN), &button_byte, BROWN1_BTN_BYTE_POS);
+    if(digital_input_status.brown1_btn_pressed == !BIT_IS_SET(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN), &button_byte, BROWN1_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.brown2_btn_pressed == !BIT_CHECK(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN), &button_byte, BROWN2_BTN_BYTE_POS);
+    if(digital_input_status.brown2_btn_pressed == !BIT_IS_SET(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN), &button_byte, BROWN2_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.brown3_btn_pressed == !BIT_CHECK(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN), &button_byte, BROWN3_BTN_BYTE_POS);
+    if(digital_input_status.brown3_btn_pressed == !BIT_IS_SET(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN), &button_byte, BROWN3_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.blue1_btn_pressed == !BIT_CHECK(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN), &button_byte, BLUE1_BTN_BYTE_POS);
+    if(digital_input_status.blue1_btn_pressed == !BIT_IS_SET(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN), &button_byte, BLUE1_BTN_BYTE_POS);
     }
 
-    if(digital_input_status.blue2_btn_pressed == !BIT_CHECK(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN)) {
-        set_or_clear(!BIT_CHECK(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN), &button_byte, BLUE2_BTN_BYTE_POS);
+    if(digital_input_status.blue2_btn_pressed == !BIT_IS_SET(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN)) {
+        set_or_clear(!BIT_IS_SET(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN), &button_byte, BLUE2_BTN_BYTE_POS);
     }
 
-    digital_input_status.purple1_btn_pressed = !BIT_CHECK(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN);
-    digital_input_status.purple2_btn_pressed = !BIT_CHECK(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN);
-    digital_input_status.purple3_btn_pressed = !BIT_CHECK(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN);
+    digital_input_status.purple1_btn_pressed = !BIT_IS_SET(PURPLE1_BTN_PIN_REG, PURPLE1_BTN_PIN);
+    digital_input_status.purple2_btn_pressed = !BIT_IS_SET(PURPLE2_BTN_PIN_REG, PURPLE2_BTN_PIN);
+    digital_input_status.purple3_btn_pressed = !BIT_IS_SET(PURPLE3_BTN_PIN_REG, PURPLE3_BTN_PIN);
     
-    digital_input_status.brown1_btn_pressed = !BIT_CHECK(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN);
-    digital_input_status.brown2_btn_pressed = !BIT_CHECK(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN);
-    digital_input_status.brown3_btn_pressed = !BIT_CHECK(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN);
+    digital_input_status.brown1_btn_pressed = !BIT_IS_SET(BROWN1_BTN_PIN_REG, BROWN1_BTN_PIN);
+    digital_input_status.brown2_btn_pressed = !BIT_IS_SET(BROWN2_BTN_PIN_REG, BROWN2_BTN_PIN);
+    digital_input_status.brown3_btn_pressed = !BIT_IS_SET(BROWN3_BTN_PIN_REG, BROWN3_BTN_PIN);
     
-    digital_input_status.blue1_btn_pressed = !BIT_CHECK(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN);
-    digital_input_status.blue2_btn_pressed = !BIT_CHECK(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN);
+    digital_input_status.blue1_btn_pressed = !BIT_IS_SET(BLUE1_BTN_PIN_REG, BLUE1_BTN_PIN);
+    digital_input_status.blue2_btn_pressed = !BIT_IS_SET(BLUE2_BTN_PIN_REG, BLUE2_BTN_PIN);
     
-    digital_input_status.left_shoulder_btn_pressed = !BIT_CHECK(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN);
-    digital_input_status.right_shoulder_btn_pressed = !BIT_CHECK(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN);
+    digital_input_status.left_shoulder_btn_pressed = !BIT_IS_SET(LEFT_SHOULDER_BTN_PIN_REG, LEFT_SHOULDER_BTN_PIN);
+    digital_input_status.right_shoulder_btn_pressed = !BIT_IS_SET(RIGHT_SHOULDER_BTN_PIN_REG, RIGHT_SHOULDER_BTN_PIN);
     
     // All of our buttons are active low except for this one.  No inverse operator (!) needed here.
-    digital_input_status.analog_stick_btn_pressed = BIT_CHECK(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN);
+    digital_input_status.analog_stick_btn_pressed = BIT_IS_SET(ANALOG_STICK_BTN_PIN_REG, ANALOG_STICK_BTN_PIN);
     
     timer2_inactivity_ovf_counter++;
     
