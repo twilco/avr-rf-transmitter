@@ -18,6 +18,8 @@
 
 enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t start_char, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate);
 
+#define MS_IN_SEC 1000
+
 /* Since the ADC in AVRs output 10 bits, and the center of our joystick is represented by 524,
    these 8 bits on their own are equivalent to 12 in decimal.  To save space versus transmitting
    a full 16 bits for this value (6 wasted bits), the other two MSB bits are packed in a different byte 
@@ -33,9 +35,19 @@ enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const 
 /* Number of seconds of user inactivity before the AVR should go to sleep. */
 #define SECONDS_BEFORE_SLEEP (uint16_t) 900
 
+/* Example calculation: ((EIGHT_BIT_TIMER_MAX [255] * TIMER2_PRESCALER [256] ) / (float) F_CPU [4,000,000])) == .01632
+   Multiply by the number of milliseconds in a second (1000) to get an overflow time of 16.32ms */
+#define TIMER2_TIME_TO_OVERFLOW (float) ((EIGHT_BIT_TIMER_MAX * TIMER2_PRESCALER) / (float) F_CPU)
+#define TIMER2_MS_TO_OVERFLOW (float) (TIMER2_TIME_TO_OVERFLOW * MS_IN_SEC)
+
 /* Number of times Timer 2 needs to overflow before the AVR should go to sleep. */
 #define EIGHT_BIT_TIMER_MAX 255
-#define TIMER2_OVERFLOWS_BEFORE_SLEEP (uint32_t) (SECONDS_BEFORE_SLEEP / (float) ((EIGHT_BIT_TIMER_MAX * TIMER2_PRESCALER) / (float) F_CPU))
+#define TIMER2_OVERFLOWS_BEFORE_SLEEP (uint32_t) (SECONDS_BEFORE_SLEEP / TIMER2_TIME_TO_OVERFLOW)
+
+/* Number of times Timer 2 needs to overflow to timeout during RFM69 init operations.  Add .99 at the end to 
+   almost always round up to the next overflow, so we never wait less than the specified ms timeout (and usually more, but this shouldn't be as big of a deal). */
+#define RFM_INIT_TIMEOUT_MS 50
+#define TIMER2_OVERFLOWS_BEFORE_RFM_INIT_TIMEOUT (uint8_t) ((RFM_INIT_TIMEOUT_MS / TIMER2_MS_TO_OVERFLOW) + .99)
 
 /* Use UU for our preamble, or training chars.  I selected these characters because the binary value of
    the 'U' char is 01010101, which supposedly gives the receivers data slicer a nice square wave to sync up with */
@@ -83,14 +95,20 @@ volatile uint8_t lsb_analog_stick_x_byte = DEFAULT_ANALOG_X_Y_BYTE_VAL;
 /* The 8 least significant bits of the analog stick y-axis value. */
 volatile uint8_t lsb_analog_stick_y_byte = DEFAULT_ANALOG_X_Y_BYTE_VAL;
 
-/* The number of times timer2 has overflown. */
-volatile uint8_t timer2_overflows = 0;
+/* Timer2 overflow counter used to alternate which ADC channel to read from. */
+volatile uint8_t timer2_adc_alternation_ovf_counter = 0;
+
+/* Timer2 overflow counter used to track time before a timeout occurs. */
+volatile uint8_t timer2_timeout_ovf_counter = 0;
 
 /* Timer2 overflow counter that is used when determining whether or not to put the microcontroller to sleep. */
 volatile uint32_t timer2_inactivity_ovf_counter = 0;
 
 /* Flag indicating whether or not a packet should be constructed and sent off. */
 volatile bool should_construct_packet = false;
+
+/* Flag indicating whether or not we should be counting up time towards some timeout value. */
+volatile bool timeout_active = false;
 
 /* The circular buffer that will store our packets while they wait to be sent over USART. */
 struct Ring_Buffer packet_buffer;
@@ -198,12 +216,12 @@ ISR(PCINT2_vect)
 ISR(TIMER2_OVF_vect)
 {
     // Send a packet every other timer overflow, and alternate analog-to-digital conversions between our two analog stick axes.
-    if(timer2_overflows == 0) {
+    if(timer2_adc_alternation_ovf_counter == 0) {
         selected_adc_channel = ANALOG_STICK_Y;
-        timer2_overflows++;
-    } else if(timer2_overflows == 1) {
+        timer2_adc_alternation_ovf_counter++;
+    } else if(timer2_adc_alternation_ovf_counter == 1) {
         selected_adc_channel = ANALOG_STICK_X;
-        timer2_overflows = 0;
+        timer2_adc_alternation_ovf_counter = 0;
         should_construct_packet = true;
     }
     start_adc(selected_adc_channel);
