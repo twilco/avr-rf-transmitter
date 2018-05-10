@@ -6,7 +6,16 @@
 #include <stdint.h>
 
 #define F_CPU (uint32_t) 4000000
+
 #define TIMER2_PRESCALER (uint16_t) 256
+
+/* Example calculation: ((EIGHT_BIT_TIMER_MAX [255] * TIMER2_PRESCALER [256] ) / (float) F_CPU [4,000,000])) == .01632
+   Multiply by the number of milliseconds in a second (1000) to get an overflow time of 16.32ms */
+#define EIGHT_BIT_TIMER_MAX 255
+#define TIMER2_TIME_TO_OVERFLOW (float) ((EIGHT_BIT_TIMER_MAX * TIMER2_PRESCALER) / (float) F_CPU)
+
+#define MS_IN_SEC 1000
+#define TIMER2_MS_TO_OVERFLOW (float) (TIMER2_TIME_TO_OVERFLOW * MS_IN_SEC)
 
 #define ANALOG_STICK_X ADC0_PIN
 #define ANALOG_STICK_Y ADC1_PIN

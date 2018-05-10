@@ -171,6 +171,12 @@
     <Compile Include="src\util\avr_spi.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\util\timeout.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\util\timeout.h">
+      <SubType>compile</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore">

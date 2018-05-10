@@ -8,8 +8,8 @@ void master_spi_init()
     SCK_DDR |= (1 << SCK_PIN);
     SS_DDR |= (1 << SS_PIN);
     
-    // Set our slave line high to start, since slaves are generally active low.
-    SS_PORT |= (1 << SS_PIN);
+    // Make sure our slave is unselected to start with
+    unselect_slave(SS_PORT, SS_PIN);
     
     /*
         Set SPE to enable SPI.
