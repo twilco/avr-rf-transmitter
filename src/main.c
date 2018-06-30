@@ -19,6 +19,12 @@
 
 enum Buffer_Status construct_and_store_packet(struct Ring_Buffer* buffer, const char* training_chars, const uint8_t start_char, const uint8_t num_training_chars, const char* data, const uint8_t num_data_chars, bool null_terminate);
 
+/* The frequency in MHz of our RFM69W module. */
+#define RFM69W_MODULE_FREQ = (uint16_t) 433
+
+/* The (completely arbitrary) network ID set for our RFM69 nodes. */
+#define RFM69W_NETWORK_ID = (uint8_t) 24
+
 /* Since the ADC in AVRs output 10 bits, and the center of our joystick is represented by 524,
    these 8 bits on their own are equivalent to 12 in decimal.  To save space versus transmitting
    a full 16 bits for this value (6 wasted bits), the other two MSB bits are packed in a different byte 
@@ -137,6 +143,7 @@ int main(void)
     adc_init();
     master_spi_init();
     usart_init();
+    rfm69_init(RFM69W_MODULE_FREQ, RFM69W_NETWORK_ID);
     
     sei();
     

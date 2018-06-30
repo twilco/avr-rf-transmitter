@@ -1,6 +1,22 @@
 #include "rfm69.h"
 
-void rfm69_init(uint16_t module_freq, uint8_t node_id, uint8_t network_id)
+volatile enum Rfm69_Mode rfm69_current_mode;
+volatile bool is_rfm69hw = false;
+volatile uint8_t rfm69_power_level = 31;
+
+void rfm69_disable_high_power_regs()
+{
+    rfm69_write_reg(REG_TESTPA1, 0x55);
+    rfm69_write_reg(REG_TESTPA2, 0x70);
+}
+
+void rfm69_enable_high_power_regs()
+{
+    rfm69_write_reg(REG_TESTPA1, 0x5D);
+    rfm69_write_reg(REG_TESTPA2, 0x7C);
+}
+
+void rfm69_init(uint16_t module_freq, uint8_t network_id)
 {
     const uint8_t CONFIG[][2] =
     {
@@ -50,7 +66,7 @@ void rfm69_init(uint16_t module_freq, uint8_t node_id, uint8_t network_id)
         /* 0x30 */ { REG_SYNCVALUE2, network_id },
         /* 0x37 */ { REG_PACKETCONFIG1, RF_PACKET1_FORMAT_FIXED | RF_PACKET1_DCFREE_OFF | RF_PACKET1_CRC_ON | RF_PACKET1_CRCAUTOCLEAR_ON | RF_PACKET1_ADRSFILTERING_OFF },
         /* 0x38 */ { REG_PAYLOADLENGTH, 4 },
-        ///* 0x39 */ { REG_NODEADRS, nodeID }, // turned off because we're not using address filtering
+        ///* 0x39 */ { REG_NODEADRS, node_id }, // turned off because we're not using address filtering
         /* 0x3C */ { REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY | RF_FIFOTHRESH_VALUE }, // TX on FIFO not empty
         /* 0x3D */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent) TODO:  Calculate proper value here
         /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0?
@@ -74,15 +90,108 @@ void rfm69_init(uint16_t module_freq, uint8_t node_id, uint8_t network_id)
         rfm69_write_reg(REG_SYNCVALUE1, 0x55);
     }
     
+    // Now to write our actual configuration
     for(uint8_t i = 0; CONFIG[i][0] != 255; i++)
     {
         rfm69_write_reg(CONFIG[i][0], CONFIG[i][1]);
     }
+    
+    // Encryption is persistent between resets and can trip you up during debugging.
+    // Disable it during initialization so we always start from a known state.
+    rfm69_set_encryption(RFM69_NO_ENCRYPTION_VAL);
+    rfm69_init_high_power(is_rfm69hw);  
+    rfm69_set_mode(RFM69_MODE_STANDBY);
+    
+    // Wait for our mode change to be ready
+    start_timer2_timeout(TIMER2_OVERFLOWS_BEFORE_RFM_INIT_TIMEOUT);
+    while (((rfm69_read_reg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && !timer2_timeout_complete());
 }
 
-void rfm69_set_power_level()
+/**
+ * Initializes high power capabilities for RFM69HW.  Do not pass true in to this method if you are not
+ * using an RFM69HW - transmission will not work if you do so.
+ *
+ * @param is_rfm69hw - should be true if we are using an RFM69HW module - should be false otherwise
+ */
+void rfm69_init_high_power(bool is_rfm69hw)
 {
+    rfm69_write_reg(REG_OCP, is_rfm69hw ? RF_OCP_OFF : RF_OCP_ON);
+    if(is_rfm69hw) {
+        rfm69_write_reg(REG_PALEVEL, (rfm69_read_reg(REG_PALEVEL) & 0x1F) | RF_PALEVEL_PA1_ON | RF_PALEVEL_PA2_ON); // enable P1 & P2 amplifier stages
+    } else {
+        rfm69_write_reg(REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | rfm69_power_level); // enable P0 only
+    }
+}
+
+void rfm69_set_encryption(const char* key)
+{
+    rfm69_set_mode(RFM69_MODE_STANDBY);
     
+    if (key != RFM69_NO_ENCRYPTION_VAL) {
+        select_slave(SS_PORT, SS_PIN);
+        // Let the RFM69 know we want to write to this register with this bitmask
+        spi_transceieve(REG_AESKEY1 | RFM69_REG_READ_WRITE_BIT_LOCATION);
+        for (uint8_t i = 0; i < 16; i++) {
+            spi_transceieve(key[i]);
+        }
+        unselect_slave(SS_PORT, SS_PIN);
+    } else {
+        // The LSB bit in REG_PACKETCONFIG2 toggles encryption - 1 for on, 0 for off.  Let's turn it off without modifying any other part of the register.
+        rfm69_write_reg(REG_PACKETCONFIG2, (rfm69_read_reg(REG_PACKETCONFIG2) & 0xFE) | 0x00);
+    }
+}
+
+void rfm69_set_mode(enum Rfm69_Mode new_mode)
+{
+    if (new_mode == rfm69_current_mode)
+    return;
+
+    switch (new_mode)
+    {
+        case RFM69_MODE_TX:
+        rfm69_write_reg(REG_OPMODE, (rfm69_read_reg(REG_OPMODE) & 0xE3) | RF_OPMODE_TRANSMITTER);
+        if (is_rfm69hw) rfm69_enable_high_power_regs();
+        break;
+        
+        case RFM69_MODE_RX:
+        rfm69_write_reg(REG_OPMODE, (rfm69_read_reg(REG_OPMODE) & 0xE3) | RF_OPMODE_RECEIVER);
+        if (is_rfm69hw) rfm69_disable_high_power_regs();      
+        break;
+        
+        case RFM69_MODE_SYNTH:
+        rfm69_write_reg(REG_OPMODE, (rfm69_read_reg(REG_OPMODE) & 0xE3) | RF_OPMODE_SYNTHESIZER);
+        break;
+        
+        case RFM69_MODE_STANDBY:
+        rfm69_write_reg(REG_OPMODE, (rfm69_read_reg(REG_OPMODE) & 0xE3) | RF_OPMODE_STANDBY);
+        break;
+        
+        case RFM69_MODE_SLEEP:
+        rfm69_write_reg(REG_OPMODE, (rfm69_read_reg(REG_OPMODE) & 0xE3) | RF_OPMODE_SLEEP);
+        break;
+        
+        default:
+        return;
+    }
+    
+    // we are using packet mode, so this check is not really needed
+    // but waiting for mode ready is necessary when going from sleep because the FIFO may not be immediately available from previous mode
+    while (rfm69_current_mode == RFM69_MODE_SLEEP && (rfm69_read_reg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+    rfm69_current_mode = new_mode;  
+}
+
+/**
+* Sets the power level for the RFM69 where 0 is the minimum (least powerful transmission) and
+* 31 is the maximum power.  Any value over 31 will be treated as 31.  Power level is halved if
+* the module is an RFM69HW.
+*
+* @param power_level - power level to set the RFM69 module to
+*/
+void rfm69_set_power_level(uint8_t power_level)
+{
+    rfm69_power_level = (power_level > 31 ? 31 : power_level);
+    if(is_rfm69hw) power_level /= 2;
+    rfm69_write_reg(REG_PALEVEL, (rfm69_read_reg(REG_PALEVEL) & 0xE0) | rfm69_power_level);
 }
 
 void rfm69_write_reg(uint8_t reg_addr, uint8_t value)
