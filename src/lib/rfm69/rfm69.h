@@ -50,7 +50,7 @@ void rfm69_init_high_power(bool is_rfm69hw);
 // Must be 16 bytes - e.g. rfm69_set_encryption("ABCDEFGHIJKLMNOP");
 void rfm69_set_encryption(const char* key);
 void rfm69_set_mode(enum Rfm69_Mode);
-void rfm69_set_power_level();
+void rfm69_set_power_level(uint8_t power_level);
 void rfm69_write_reg(uint8_t reg_addr, uint8_t value);
 uint8_t rfm69_read_reg(uint8_t reg_addr);
 
